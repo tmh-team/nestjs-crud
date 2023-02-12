@@ -44,8 +44,14 @@ export class UsersService {
     return await this.userRepository.findOneByOrFail({ id });
   }
 
-  deleteUser(id: number) {
-    return this.userRepository.delete(id);
+  async deleteUser(id: number) {
+    const user = await this.userRepository.findOne({
+      where: { id: id },
+      relations: ['profile'],
+    });
+
+    this.userProfileRepository.delete(user.profile.id);
+    this.userRepository.delete(user.id);
   }
 
   async createUserProfile(

@@ -24,8 +24,10 @@ export class User {
   @Exclude()
   password: string;
 
-  @OneToOne(() => Profile)
-  @JoinColumn()
+  @OneToOne(() => Profile, {
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({ name: 'profile_id' })
   profile: Profile;
 
   @OneToMany(() => Blog, (blog) => blog.user)

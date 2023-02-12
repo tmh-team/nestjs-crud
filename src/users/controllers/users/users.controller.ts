@@ -12,7 +12,28 @@ import {
   ParseIntPipe,
   Post,
   Put,
+  Res,
+  UploadedFile,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { UseInterceptors } from '@nestjs/common';
+import { join } from 'path';
+import * as fs from 'fs';
+
+const storage = {
+  storage: diskStorage({
+    destination: './upload/image',
+    filename: (req, file, callback) => {
+      const name = file.originalname.split('.')[0];
+      const fileExtension = file.originalname.split('.')[1];
+      const newFileName =
+        name.split(' ').join('_') + '_' + Date.now() + '.' + fileExtension;
+
+      callback(null, newFileName);
+    },
+  }),
+};
 
 @Controller('users')
 export class UsersController {
@@ -24,16 +45,26 @@ export class UsersController {
   }
 
   @Post()
-  createUser(@Body() createUserDto: CreateUserDto) {
-    return this.userService.createUser(createUserDto);
+  @UseInterceptors(FileInterceptor('avatar', storage))
+  createUser(
+    @Body() createUserDto: CreateUserDto,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    let filename = file ? file.filename : null;
+
+    return this.userService.createUser(createUserDto, filename);
   }
 
   @Put(':id')
+  @UseInterceptors(FileInterceptor('avatar', storage))
   updateUser(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateUserDto: UpdateUserDto,
+    @UploadedFile() file: Express.Multer.File,
   ) {
-    return this.userService.updateUser(id, updateUserDto);
+    let filename = file ? file.filename : null;
+
+    return this.userService.updateUser(id, updateUserDto, filename);
   }
 
   @Delete(':id')
@@ -55,5 +86,12 @@ export class UsersController {
     @Body() createUserBlog: CreateUserBlogDto,
   ) {
     return this.userService.createUserBlog(id, createUserBlog);
+  }
+
+  @Get(':id/avatar')
+  async findAvatar(@Param('id', ParseIntPipe) id: number, @Res() res) {
+    const avatar = await this.userService.findAvatar(id);
+
+    return res.sendFile(join(process.cwd(), 'upload/image/' + avatar));
   }
 }

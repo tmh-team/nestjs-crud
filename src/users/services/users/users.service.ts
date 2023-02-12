@@ -1,3 +1,4 @@
+import * as fs from 'fs';
 import { CreateUserBlogDto } from './../../dtos/CreateUserBlog.dto';
 import { CreateUserProfileDto } from './../../dtos/CreateUserProfile.dto';
 import { UpdateUserDto } from './../../dtos/UpdateUser.dto';
@@ -23,23 +24,39 @@ export class UsersService {
     return this.userRepository.find({ relations: ['profile', 'blogs'] });
   }
 
-  createUser(user: CreateUserDto): Promise<User> {
+  createUser(user: CreateUserDto, avatar: string): Promise<User> {
     const password = bcryptPassword(user.password);
     const newUser = this.userRepository.create({
       ...user,
       password,
+      avatar,
     });
 
     return this.userRepository.save(newUser);
   }
 
-  async updateUser(id: number, updateUserDto: UpdateUserDto): Promise<User> {
+  async updateUser(
+    id: number,
+    updateUserDto: UpdateUserDto,
+    file: string,
+  ): Promise<User> {
     const user = await this.userRepository.findOneBy({ id });
     const password = updateUserDto.password
       ? bcryptPassword(updateUserDto.password)
       : user.password;
 
-    this.userRepository.update({ id }, { ...updateUserDto, password });
+    let avatar = user.avatar;
+    if (file) {
+      fs.unlink(`upload/image/${avatar}`, (error) => {
+        if (error) {
+          return error;
+        }
+      });
+
+      avatar = file;
+    }
+
+    this.userRepository.update({ id }, { ...updateUserDto, password, avatar });
 
     return await this.userRepository.findOneByOrFail({ id });
   }
@@ -50,7 +67,18 @@ export class UsersService {
       relations: ['profile'],
     });
 
-    this.userProfileRepository.delete(user.profile.id);
+    if (user.avatar) {
+      fs.unlink(`upload/image/${user.avatar}`, (error) => {
+        if (error) {
+          return error;
+        }
+      });
+    }
+
+    if (user.profile) {
+      this.userProfileRepository.delete(user.profile.id);
+    }
+
     this.userRepository.delete(user.id);
   }
 
@@ -83,5 +111,11 @@ export class UsersService {
     });
 
     return this.userBlogRepository.save(newProfile);
+  }
+
+  async findAvatar(id: number): Promise<String> {
+    const user = await this.userRepository.findOneBy({ id });
+
+    return user.avatar;
   }
 }

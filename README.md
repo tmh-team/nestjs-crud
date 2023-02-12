@@ -42,6 +42,7 @@ npm run start:prod
 - Nest [Configuration](https://docs.nestjs.com/techniques/configuration) for env
 - Nest [Validation](https://docs.nestjs.com/techniques/validation)
 - Nest [Hashing](https://docs.nestjs.com/security/encryption-and-hashing#hashing) for password hashing
+- Nest [File] upload(https://docs.nestjs.com/techniques/file-upload)
 
 ## Nest cmd
 
